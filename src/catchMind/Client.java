@@ -150,8 +150,7 @@ public class Client extends JFrame {
       try {
         while (!Thread.currentThread().isInterrupted()) {
           Object obj = in.readObject();
-          if (obj instanceof Protocol) {
-            Protocol protocol = (Protocol) obj;
+          if (obj instanceof Protocol protocol) {
             handleProtocol(protocol);
           }
         }
@@ -166,9 +165,15 @@ public class Client extends JFrame {
   private void handleProtocol(Protocol protocol) {
     SwingUtilities.invokeLater(() -> {
       switch (protocol.getCmd()) {
-        case Protocol.CMD_DISCONNECT:
-          closeConnection();
-          System.exit(0);
+        case Protocol.CMD_GET_DRAWERS_ALL_DOTS:
+          Protocol p = new Protocol();
+          p.setCmd(Protocol.CMD_DRAW);
+          p.setDots(new ArrayList<>(allDots));
+          try {
+            out.writeObject(p);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
           break;
         case Protocol.CMD_DRAW:
           ArrayList<Dot> receivedDots = protocol.getDots();
@@ -180,6 +185,10 @@ public class Client extends JFrame {
         case Protocol.CMD_CLEAR:
           allDots.clear();
           drawingPanel.repaint();
+          break;
+        case Protocol.CMD_DISCONNECT:
+          closeConnection();
+          System.exit(0);
           break;
       }
     });
