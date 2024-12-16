@@ -102,6 +102,10 @@ public class CopyClient extends Thread {
         System.out.println("Received clear command");
         server.sendProtocol(p);
         break;
+      case Protocol.CMD_MSG_SEND:
+        System.out.println("Chatting send");
+        server.sendProtocol(p);
+        break;
       case Protocol.CMD_DISCONNECT:
         System.out.println("Client disconnected");
         closeConnection();

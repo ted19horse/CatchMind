@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public class Server {
   private ServerSocket ss;
-  private final ArrayList<CopyClient> clients = new ArrayList<CopyClient>();
+  private final ArrayList<CopyClient> clients = new ArrayList<>();
 
   public Server() {
     try {
