@@ -3,35 +3,43 @@ package catchMind;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 
 public class Client extends JFrame {
   private Socket socket;
   private ObjectInputStream in;
   private ObjectOutputStream out;
+  private Thread listeningThread;
+  private int position;
   private JPanel titlePanel, contentPanel, leftSidePanel, centerPanel, rightSidePanel, drawingPanel, controlPanel, palettePanel, scoreBoardPanel, chattingPanel;
-  private final ArrayList<Dot> allDots = new ArrayList<>();
-  private final ArrayList<Dot> currentStroke = new ArrayList<>();
+  private JButton exitBtn, clearBtn, holdBtn;
+  private boolean isDrawingAuthority = false;
+  private ArrayList<Dot> allDots = new ArrayList<>();
+  private ArrayList<Dot> currentStroke = new ArrayList<>();
 
   public Client() {
     initializeNetwork();
     initializeUI();
-    startListeningThread();
+    listeningThread = startListeningThread();
+    listeningThread.start();
+    addEventListener();
   }
 
   private void initializeNetwork() {
     try {
-      socket = new Socket("192.168.10.100", 5000);
+      // socket = new Socket("192.168.10.100", 5000);
+      socket = new Socket("localhost", 5000);
       out = new ObjectOutputStream(socket.getOutputStream());
       in = new ObjectInputStream(socket.getInputStream());
 
-      Protocol protocol = new Protocol();
-      protocol.setCmd(Protocol.CMD_CONNECT);
-      out.writeObject(protocol);
+      out.writeObject(new Protocol(position, Protocol.CMD_CONNECT, "", null));
+      out.flush();
     } catch (IOException e) {
       JOptionPane.showMessageDialog(this, "네트워크 연결 실패: " + e.getMessage());
       System.exit(1);
@@ -40,9 +48,18 @@ public class Client extends JFrame {
 
   private void initializeUI() {
     titlePanel = new JPanel();
-    titlePanel.setLayout(null);
+    titlePanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 10, 10));
     titlePanel.setPreferredSize(new Dimension(1500, 100));
     titlePanel.setBackground(new Color(0, 0, 0, 128));
+
+    exitBtn = new JButton("Exit");
+    exitBtn.setPreferredSize(new Dimension(100, 30));
+    exitBtn.addActionListener(e -> {
+      try {
+        out.writeObject(new Protocol(position, Protocol.CMD_DISCONNECT, "", null));
+        out.flush();
+      } catch (IOException ignored) {}
+    });
 
     contentPanel = new JPanel();
     contentPanel.setLayout(new BorderLayout());
@@ -81,11 +98,13 @@ public class Client extends JFrame {
     drawingPanel.addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
+        if (!isDrawingAuthority) return;
         currentStroke.clear();
       }
 
       @Override
       public void mouseReleased(MouseEvent e) {
+        if (!isDrawingAuthority) return;
         sendDots(currentStroke);
         allDots.addAll(currentStroke);
         currentStroke.clear();
@@ -96,6 +115,7 @@ public class Client extends JFrame {
     drawingPanel.addMouseMotionListener(new MouseAdapter() {
       @Override
       public void mouseDragged(MouseEvent e) {
+        if (!isDrawingAuthority) return;
         Dot d = new Dot(e.getX() - 1, e.getY() - 1, Color.BLACK);
         currentStroke.add(d);
         drawingPanel.repaint();
@@ -108,8 +128,25 @@ public class Client extends JFrame {
     controlPanel.setBackground(new Color(0, 255, 0, 128));
 
     palettePanel = new JPanel();
-    palettePanel.setLayout(null);
+    palettePanel.setLayout(new BoxLayout(palettePanel, BoxLayout.X_AXIS));
     palettePanel.setPreferredSize(new Dimension(900, 100));
+
+    clearBtn = new JButton("Clear");
+    clearBtn.setPreferredSize(new Dimension(100, 30));
+    clearBtn.addActionListener(e -> {
+      try {
+        out.writeObject(new Protocol(position, Protocol.CMD_CLEAR, "", null));
+        out.flush();
+      } catch (IOException ioe) {
+        throw new RuntimeException(ioe);
+      }
+    });
+
+    holdBtn = new JButton("Hold");
+    holdBtn.setPreferredSize(new Dimension(100, 30));
+    holdBtn.addActionListener(e -> {
+      isDrawingAuthority = !isDrawingAuthority;
+    });
 
     scoreBoardPanel = new JPanel();
     scoreBoardPanel.setLayout(null);
@@ -122,6 +159,8 @@ public class Client extends JFrame {
     chattingPanel.setBackground(new Color(0, 128, 128, 128));
 
 
+    titlePanel.add(exitBtn);
+
     contentPanel.add(centerPanel, BorderLayout.CENTER);
     contentPanel.add(leftSidePanel, BorderLayout.WEST);
     contentPanel.add(rightSidePanel, BorderLayout.EAST);
@@ -132,6 +171,9 @@ public class Client extends JFrame {
     controlPanel.add(palettePanel, BorderLayout.NORTH);
     controlPanel.add(scoreBoardPanel, BorderLayout.WEST);
     controlPanel.add(chattingPanel, BorderLayout.EAST);
+
+    palettePanel.add(clearBtn);
+    palettePanel.add(holdBtn);
 
     Client.this.setLayout(new BorderLayout());
 
@@ -145,50 +187,66 @@ public class Client extends JFrame {
     Client.this.setVisible(true);
   }
 
-  private void startListeningThread() {
-    new Thread(() -> {
+  private Thread startListeningThread() {
+    return new Thread(() -> {
       try {
-        while (!Thread.currentThread().isInterrupted()) {
-          Object obj = in.readObject();
-          if (obj instanceof Protocol protocol) {
-            handleProtocol(protocol);
+        while (!Thread.currentThread().isInterrupted() && !socket.isClosed()) {
+          try {
+            Object obj = in.readObject();
+            if (obj instanceof Protocol protocol) {
+              handleProtocol(protocol);
+            }
+          } catch (EOFException e) {
+            System.err.println("서버 연결 중단: " + e.getMessage());
+            break;
+          } catch (IOException | ClassNotFoundException e) {
+            System.err.println("오류 발생: " + e.getMessage());
+            break;
           }
         }
-      } catch (IOException | ClassNotFoundException e) {
-        e.printStackTrace();
       } finally {
         closeConnection();
       }
-    }).start();
+    });
+  }
+
+
+  private void addEventListener() {
+    this.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosing(WindowEvent e) {
+        try {
+          out.writeObject(new Protocol(position, Protocol.CMD_DISCONNECT, "", null));
+          out.flush();
+        } catch (IOException ignored) {}
+      }
+    });
   }
 
   private void handleProtocol(Protocol protocol) {
     SwingUtilities.invokeLater(() -> {
       switch (protocol.getCmd()) {
+        case Protocol.CMD_CONNECT:
+          this.position = protocol.getPosition();
+          JOptionPane.showMessageDialog(this, "환영합니다.");
+          break;
         case Protocol.CMD_GET_DRAWERS_ALL_DOTS:
-          Protocol p = new Protocol();
-          p.setCmd(Protocol.CMD_DRAW);
-          p.setDots(new ArrayList<>(allDots));
-          try {
-            out.writeObject(p);
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
+          sendAllDots();
+          break;
+        case Protocol.CMD_CAN_DRAWING:
+          isDrawingAuthority = true;
+          break;
+        case Protocol.CMD_CANNOT_DRAWING:
+          isDrawingAuthority = false;
           break;
         case Protocol.CMD_DRAW:
-          ArrayList<Dot> receivedDots = protocol.getDots();
-          if (receivedDots != null) {
-            allDots.addAll(receivedDots);
-            drawingPanel.repaint();
-          }
+          handleReceivedDots(protocol.getDots());
           break;
         case Protocol.CMD_CLEAR:
-          allDots.clear();
-          drawingPanel.repaint();
+          clearAllDots();
           break;
         case Protocol.CMD_DISCONNECT:
           closeConnection();
-          System.exit(0);
           break;
       }
     });
@@ -196,25 +254,60 @@ public class Client extends JFrame {
 
   private void sendDots(ArrayList<Dot> dots) {
     try {
-      Protocol p = new Protocol();
-      p.setCmd(Protocol.CMD_DRAW);
-      p.setDots(new ArrayList<>(dots));
-      out.writeObject(p);
+      out.writeObject(new Protocol(position, Protocol.CMD_DRAW, "", dots));
       out.flush();
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
+  private void sendAllDots() {
+    try {
+      out.writeObject(new Protocol(position, Protocol.CMD_DRAW, "", allDots));
+      out.flush();
+    } catch (IOException e) {
+      System.err.println("도트 전송 중 오류 발생: " + e.getMessage());
+    }
+  }
+
+  private void handleReceivedDots(ArrayList<Dot> receivedDots) {
+    if (receivedDots != null) {
+      allDots.addAll(receivedDots);
+      drawingPanel.repaint();
+    }
+  }
+
+  private void clearAllDots() {
+    allDots.clear();
+    currentStroke.clear();
+    drawingPanel.repaint();
+  }
+
   private void closeConnection() {
     try {
+      if (listeningThread != null && listeningThread.isAlive()) {
+        listeningThread.interrupt();
+        if (socket != null && !socket.isClosed()) {
+          socket.shutdownInput();
+        }
+        listeningThread.join(5000);
+      }
       if (in != null) in.close();
       if (out != null) out.close();
       if (socket != null) socket.close();
-    } catch (IOException e) {
-      e.printStackTrace();
+    } catch (IOException | InterruptedException e) {
+      System.err.println("연결 종료 중 오류 발생: " + e.getMessage());
+    } finally {
+      SwingUtilities.invokeLater(() -> {
+        if (isDisplayable()) {
+          JOptionPane.showMessageDialog(this, "서버와의 연결이 종료되었습니다.", "연결 종료", JOptionPane.INFORMATION_MESSAGE);
+          dispose();
+        }
+        System.exit(0);
+      });
     }
   }
+
 
   public static void main(String[] args) {
     SwingUtilities.invokeLater(Client::new);

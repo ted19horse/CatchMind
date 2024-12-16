@@ -10,14 +10,15 @@ public class Protocol implements Serializable {
 
   public static final int CMD_CONNECT = 1;
   public static final int CMD_GET_DRAWERS_ALL_DOTS = 2;
-  public static final int CMD_DRAW = 3;
-  public static final int CMD_CLEAR = 4;
-  public static final int CMD_MSG_SEND = 5;
-  public static final int CMD_DISCONNECT = 6;
+  public static final int CMD_CAN_DRAWING = 3;
+  public static final int CMD_CANNOT_DRAWING = 4;
+  public static final int CMD_DRAW = 5;
+  public static final int CMD_CLEAR = 6;
+  public static final int CMD_MSG_SEND = 7;
+  public static final int CMD_DISCONNECT = 8;
+  public static final int CMD_SERVER_IS_FULL = 9;
 
-  private static final int TURN_DRAW = 1;
-  private static final int TURN_ANSWER = 2;
-
+  private int position;
   private int cmd; // 명령어
   private String msg; // 메시지
   private ArrayList<Dot> dots; // Dot 리스트
@@ -28,10 +29,19 @@ public class Protocol implements Serializable {
   }
 
   // 매개변수가 있는 생성자 통합
-  public Protocol(int cmd, String msg, ArrayList<Dot> dots) {
+  public Protocol(int position, int cmd, String msg, ArrayList<Dot> dots) {
+    this.position = position;
     this.cmd = cmd;
     this.msg = msg;
     this.dots = (dots != null) ? new ArrayList<>(dots) : new ArrayList<>();
+  }
+
+  public int getPosition() {
+    return position;
+  }
+
+  public void setPosition(int position) {
+    this.position = position;
   }
 
   public int getCmd() {

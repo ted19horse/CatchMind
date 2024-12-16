@@ -9,22 +9,39 @@ import java.util.Optional;
 
 public class Server {
   private ServerSocket ss;
-  private final ArrayList<CopyClient> clients = new ArrayList<>();
+  private final ArrayList<CopyClient> clients = new ArrayList<CopyClient>();
 
   public Server() {
     try {
       ss = new ServerSocket(5000);
       System.out.println("Server started on port 5000");
+      initClientsList();
+
       while (!Thread.currentThread().isInterrupted()) {
-        if(clients.size() < 8) {
-          Socket s = ss.accept();
-          System.out.println("New client connected: " + s.getInetAddress().getHostAddress());
-          CopyClient cc;
-          if(clients.isEmpty()) cc = new CopyClient(s, this, true);
-          else cc = new CopyClient(s, this, false);
-          cc.start();
-          clients.add(cc);
+        Socket s = ss.accept();
+
+        if(getActiveClientCount() >= 8) {
+          System.out.println("Connection rejected: server is full");
+          CopyClient tmpCopyClient = new CopyClient(-1);
+          tmpCopyClient.sendProtocol(new Protocol(tmpCopyClient.getPosition(), Protocol.CMD_SERVER_IS_FULL, "", null));
+          tmpCopyClient.closeConnection();
+          continue;
         }
+
+        Optional<CopyClient> result = clients.stream().filter(CopyClient::isEmpty).findFirst();
+        result.ifPresent(oldCopyClient -> {
+          System.out.println("New client connected: " + s.getInetAddress().getHostAddress());
+          int index = clients.indexOf(oldCopyClient);
+          CopyClient newCopyClient = new CopyClient(s, this, false, index);
+          clients.set(index, newCopyClient);
+          if(getActiveClientCount() == 1) {
+            newCopyClient.setDrawingAuthority(true);
+            System.out.println("Drawing authority granted to client: " + s.getInetAddress().getHostAddress());
+          }
+          else getDrawersAllDot();
+          System.out.println("Total clients: " + getActiveClientCount());
+          newCopyClient.start();
+        });
       }
     } catch (IOException e) {
       System.err.println("Server error: " + e.getMessage());
@@ -33,23 +50,65 @@ public class Server {
     }
   }
 
+  private void initClientsList() {
+    for(int i = 0; i < 8; i++) {
+      clients.add(new CopyClient(i));
+    }
+  }
+
+  private int getActiveClientCount() {
+    return (int) clients.stream().filter(client -> !client.isEmpty()).count();
+  }
+
+  public void getDrawersAllDot() {
+    Optional<CopyClient> result = clients.stream()
+        .filter(CopyClient::isDrawingAuthority)
+        .findFirst();
+    result.ifPresent(cc -> {
+      cc.sendProtocol(new Protocol(cc.getPosition(), Protocol.CMD_GET_DRAWERS_ALL_DOTS, "", null));
+    });
+  }
+
+  public void sendInitDots(Protocol p) {
+    Iterator<CopyClient> iterator = clients.iterator();
+    while (iterator.hasNext()) {
+      CopyClient cc = iterator.next();
+      if(!cc.isInitsDrawing()) {
+        p.setCmd(Protocol.CMD_DRAW);
+        try {
+          cc.sendProtocol(p);
+        } catch (Exception e) {
+          System.err.println("Error sending init dots to client: " + e.getMessage());
+          iterator.remove();
+          cc.closeConnection();
+        }
+        cc.setInitsDrawing(true);
+      }
+    }
+  }
+
   public void sendProtocol(Protocol p) {
     Iterator<CopyClient> iterator = clients.iterator();
     while (iterator.hasNext()) {
       CopyClient cc = iterator.next();
-      try {
-        cc.sendProtocol(p);
-      } catch (Exception e) {
-        System.err.println("Error sending protocol to client: " + e.getMessage());
-        iterator.remove();
-        cc.closeConnection();
+      if(!cc.isEmpty()) {
+        try {
+          cc.sendProtocol(p);
+        } catch (Exception e) {
+          System.err.println("Error sending protocol to client: " + e.getMessage());
+          iterator.remove();
+          cc.closeConnection();
+        }
       }
     }
   }
 
   public void removeClient(CopyClient client) {
-    clients.remove(client);
-    System.out.println("Client removed. Total clients: " + clients.size());
+    int index = clients.indexOf(client);
+    if(index >= 0) {
+      clients.set(index, new CopyClient(index));
+      System.out.println("Client removed. Total clients: " + getActiveClientCount());
+    }
   }
 
   private void closeServer() {
@@ -63,17 +122,6 @@ public class Server {
         System.err.println("Error closing server socket: " + e.getMessage());
       }
     }
-  }
-
-  public void getDrawersAllDot() {
-    Optional<CopyClient> result = clients.stream()
-        .filter(CopyClient::isDrawingAuthority)
-        .findFirst();
-    result.ifPresent(cc -> {
-      Protocol p = new Protocol();
-      p.setCmd(Protocol.CMD_GET_DRAWERS_ALL_DOTS);
-      cc.sendProtocol(p);
-    });
   }
 
   public static void main(String[] args) {
