@@ -20,7 +20,7 @@ public class Client extends JFrame {
   private JPanel titlePanel, contentPanel, leftSidePanel, centerPanel, rightSidePanel, drawingPanel, controlPanel, palettePanel, scoreBoardPanel, chattingPanel;
   private JButton exitBtn, clearBtn, holdBtn;
   private boolean isDrawingAuthority = false;
-  private final ArrayList<Dot> allDots = new ArrayList<>();
+  private final ArrayList<ArrayList<Dot>> allStrokes = new ArrayList<>();
   private final ArrayList<Dot> currentStroke = new ArrayList<>();
   String msg;
   JTextField chattingField;
@@ -86,13 +86,23 @@ public class Client extends JFrame {
       @Override
       protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        for (Dot dot : allDots) {
-          g.setColor(dot.color);
-          g.fillOval(dot.x, dot.y, dot.wh, dot.wh);
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setStroke(new BasicStroke(2));
+
+        for (ArrayList<Dot> stroke : allStrokes) {
+          for (int i = 1; i < stroke.size(); i++) {
+            Dot prev = stroke.get(i - 1);
+            Dot curr = stroke.get(i);
+            g2d.setColor(curr.color);
+            g2d.drawLine(prev.x, prev.y, curr.x, curr.y);
+          }
         }
-        for (Dot dot : currentStroke) {
-          g.setColor(dot.color);
-          g.fillOval(dot.x, dot.y, dot.wh, dot.wh);
+
+        for (int i = 1; i < currentStroke.size(); i++) {
+          Dot prev = currentStroke.get(i - 1);
+          Dot curr = currentStroke.get(i);
+          g2d.setColor(curr.color);
+          g2d.drawLine(prev.x, prev.y, curr.x, curr.y);
         }
       }
     };
@@ -110,7 +120,7 @@ public class Client extends JFrame {
       public void mouseReleased(MouseEvent e) {
         if (!isDrawingAuthority) return;
         sendDots(currentStroke);
-        allDots.addAll(currentStroke);
+        allStrokes.add(currentStroke);
         currentStroke.clear();
         drawingPanel.repaint();
       }
@@ -269,6 +279,9 @@ public class Client extends JFrame {
         case Protocol.CMD_GET_DRAWERS_ALL_DOTS:
           sendAllDots();
           break;
+        case Protocol.CMD_SET_DRAWERS_ALL_DOTS:
+          initAllDots(protocol);
+          break;
         case Protocol.CMD_CAN_DRAWING:
           isDrawingAuthority = true;
           break;
@@ -302,22 +315,27 @@ public class Client extends JFrame {
 
   private void sendAllDots() {
     try {
-      out.writeObject(new Protocol(position, Protocol.CMD_DRAW, "", allDots));
+      out.writeObject(new Protocol(Protocol.CMD_SET_DRAWERS_ALL_DOTS, "", allStrokes));
       out.flush();
     } catch (IOException e) {
       System.err.println("도트 전송 중 오류 발생: " + e.getMessage());
     }
   }
 
+  private void initAllDots(Protocol p) {
+    allStrokes.clear();
+    allStrokes.addAll(p.getAllDots());
+  }
+
   private void handleReceivedDots(ArrayList<Dot> receivedDots) {
     if (receivedDots != null) {
-      allDots.addAll(receivedDots);
+      allStrokes.add(receivedDots);
       drawingPanel.repaint();
     }
   }
 
   private void clearAllDots() {
-    allDots.clear();
+    allStrokes.clear();
     currentStroke.clear();
     drawingPanel.repaint();
   }

@@ -74,15 +74,14 @@ public class Server {
     while (iterator.hasNext()) {
       CopyClient cc = iterator.next();
       if(!cc.isInitsDrawing()) {
-        p.setCmd(Protocol.CMD_DRAW);
         try {
           cc.sendProtocol(p);
+          cc.setInitsDrawing(true);
         } catch (Exception e) {
           System.err.println("Error sending init dots to client: " + e.getMessage());
           iterator.remove();
           cc.closeConnection();
         }
-        cc.setInitsDrawing(true);
       }
     }
   }

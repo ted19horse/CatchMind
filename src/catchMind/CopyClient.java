@@ -87,11 +87,9 @@ public class CopyClient extends Thread {
         }
         System.out.println("New client connected");
         break;
-      case Protocol.CMD_GET_DRAWERS_ALL_DOTS:
-        if(!isInitsDrawing()) {
-          System.out.println("Received drawers all dots");
-          server.sendInitDots(p);
-        }
+      case Protocol.CMD_SET_DRAWERS_ALL_DOTS:
+        System.out.println("Received drawers all dots");
+        server.sendInitDots(p);
         break;
       case Protocol.CMD_DRAW:
         if(!isInitsDrawing()) setInitsDrawing(true);

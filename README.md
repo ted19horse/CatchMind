@@ -10,3 +10,4 @@
 - The server grants drawing permission to the first person who enters.
 - We have strengthened the exit logic when clicking the exit button.
 - Users can view the chat logs between each other.
+- The drawing algorithm has been updated to display lines connecting points instead of individual points.
