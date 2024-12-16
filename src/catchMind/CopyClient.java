@@ -79,7 +79,7 @@ public class CopyClient extends Thread {
       case Protocol.CMD_CONNECT:
         try {
           out.writeObject(p);
-          if(isDrawingAuthority()) out.writeObject( new Protocol(position, Protocol.CMD_CAN_DRAWING, "", null) );
+          if(isDrawingAuthority()) out.writeObject(new Protocol(position, Protocol.CMD_CAN_DRAWING, "", null));
           out.flush();
         } catch (IOException e) {
           closeConnection();
