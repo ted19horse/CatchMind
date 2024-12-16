@@ -13,7 +13,6 @@ public class CopyClient extends Thread {
   private boolean initsDrawing;
   private boolean drawingAuthority;
   private int position;
-  String msg;
 
   public CopyClient(Socket socket, Server server, boolean drawingAuthority) {
     this.socket = socket;
@@ -48,35 +47,28 @@ public class CopyClient extends Thread {
 
   private void handleProtocol(Protocol p) {
     switch (p.getCmd()) {
-
       case Protocol.CMD_CONNECT:
         System.out.println("New client connected");
         break;
-
       case Protocol.CMD_GET_DRAWERS_ALL_DOTS:
         if(!isInitsDrawing()) {
           System.out.println("Received drawers all dots");
           server.sendProtocol(p);
         }
         break;
-
       case Protocol.CMD_DRAW:
         if(!isInitsDrawing()) setInitsDrawing(true);
         System.out.println("Received drawing data");
         if(isDrawingAuthority()) server.sendProtocol(p);
         break;
-
       case Protocol.CMD_CLEAR:
         System.out.println("Received clear command");
         server.sendProtocol(p);
         break;
-
       case Protocol.CMD_MSG_SEND:
-        this.msg = p.getMsg();
-        p.setMsg(this.msg);
+        System.out.println("Chatting send");
         server.sendProtocol(p);
         break;
-
       case Protocol.CMD_DISCONNECT:
         System.out.println("Client disconnected");
         closeConnection();

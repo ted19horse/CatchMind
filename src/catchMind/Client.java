@@ -1,7 +1,5 @@
 package catchMind;
 
-import com.sun.source.tree.NewArrayTree;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -147,30 +145,6 @@ public class Client extends JFrame {
 
     chattingPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-    chattingField.addKeyListener(new KeyAdapter() {
-      @Override
-      public void keyPressed(KeyEvent e) {
-        int press = e.getKeyCode();
-        if(press == KeyEvent.VK_ENTER) {
-          System.out.println("KeyPress Check");
-          msg = chattingField.getText();
-          System.out.println("msg check : " + msg);
-          if(!msg.isEmpty()){
-            Protocol p = new Protocol();
-            p.setCmd(4);
-            p.setMsg(p.getMsg());
-            chattingField.setText("");
-            try{
-              out.writeObject(p);
-            } catch (IOException ex) {
-              System.out.println("KeyListener Error: " + ex.getMessage());
-            }
-            System.out.println(p.toString());
-          }
-        }
-      }
-    });
-
     chattingSend.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -178,19 +152,19 @@ public class Client extends JFrame {
         msg = chattingField.getText();
         System.out.println(msg);
         if(!msg.isEmpty()) {
-//          Protocol p = new Protocol();
-//          p.setCmd(Protocol.CMD_MSG_SEND);
-//          p.setMsg(p.getMsg());
+          Protocol p = new Protocol();
+          p.setCmd(5);
+          p.setMsg(msg);
           chattingField.setText("");
           try {
-            out.writeObject(new Protocol(Protocol.CMD_MSG_SEND, msg, null));
+            out.writeObject(p);
           } catch (IOException ex) {
-            System.out.println("ActionListener Error: " + ex.getMessage());
+            System.out.println("addActionListener Error: " + ex.getMessage());
           }
-          System.out.println(p);
+
+          System.out.println("p.getCmd : " + p.getCmd());
         }
       }
-
     });
 
     contentPanel.add(centerPanel, BorderLayout.CENTER);

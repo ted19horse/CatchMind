@@ -61,9 +61,9 @@ public class Protocol implements Serializable {
   @Override
   public String toString() {
     return "Protocol{" +
-            "cmd=" + cmd +
-            ", msg='" + msg + '\'' +
-            ", dots=" + (dots != null ? dots.size() : "null") +
-            '}';
+        "cmd=" + cmd +
+        ", msg='" + msg + '\'' +
+        ", dots=" + (dots != null ? dots.size() : "null") +
+        '}';
   }
 }

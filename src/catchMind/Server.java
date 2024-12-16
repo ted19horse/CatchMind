@@ -67,8 +67,8 @@ public class Server {
 
   public void getDrawersAllDot() {
     Optional<CopyClient> result = clients.stream()
-            .filter(CopyClient::isDrawingAuthority)
-            .findFirst();
+        .filter(CopyClient::isDrawingAuthority)
+        .findFirst();
     result.ifPresent(cc -> {
       Protocol p = new Protocol();
       p.setCmd(Protocol.CMD_GET_DRAWERS_ALL_DOTS);
