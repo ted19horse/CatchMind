@@ -9,9 +9,11 @@ public class Protocol implements Serializable {
   private static final long serialVersionUID = 1L; // 버전 관리를 위한 serialVersionUID
 
   public static final int CMD_CONNECT = 1;
-  public static final int CMD_DRAW = 2;
-  public static final int CMD_CLEAR = 3;
-  public static final int CMD_DISCONNECT = 4;
+  public static final int CMD_GET_DRAWERS_ALL_DOTS = 2;
+  public static final int CMD_DRAW = 3;
+  public static final int CMD_CLEAR = 4;
+  public static final int CMD_MSG_SEND = 5;
+  public static final int CMD_DISCONNECT = 6;
 
   private static final int TURN_DRAW = 1;
   private static final int TURN_ANSWER = 2;
@@ -59,9 +61,9 @@ public class Protocol implements Serializable {
   @Override
   public String toString() {
     return "Protocol{" +
-        "cmd=" + cmd +
-        ", msg='" + msg + '\'' +
-        ", dots=" + (dots != null ? dots.size() : "null") +
-        '}';
+            "cmd=" + cmd +
+            ", msg='" + msg + '\'' +
+            ", dots=" + (dots != null ? dots.size() : "null") +
+            '}';
   }
 }

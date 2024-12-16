@@ -1,5 +1,7 @@
 package catchMind;
 
+import com.sun.source.tree.NewArrayTree;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -16,6 +18,10 @@ public class Client extends JFrame {
   private JPanel titlePanel, contentPanel, leftSidePanel, centerPanel, rightSidePanel, drawingPanel, controlPanel, palettePanel, scoreBoardPanel, chattingPanel;
   private final ArrayList<Dot> allDots = new ArrayList<>();
   private final ArrayList<Dot> currentStroke = new ArrayList<>();
+  String msg;
+  JTextField chattingField;
+  JButton chattingSend;
+  JTextArea chattingArea;
 
   public Client() {
     initializeNetwork();
@@ -25,7 +31,7 @@ public class Client extends JFrame {
 
   private void initializeNetwork() {
     try {
-      socket = new Socket("192.168.10.100", 5000);
+      socket = new Socket("127.0.0.1", 5000);
       out = new ObjectOutputStream(socket.getOutputStream());
       in = new ObjectInputStream(socket.getInputStream());
 
@@ -116,11 +122,76 @@ public class Client extends JFrame {
     scoreBoardPanel.setPreferredSize(new Dimension(450, 200));
     scoreBoardPanel.setBackground(new Color(128, 128, 0, 128));
 
-    chattingPanel = new JPanel();
-    chattingPanel.setLayout(null);
+    //bottomPanel
+    JPanel bottomPanel = new JPanel(new BorderLayout());
+
+
+    chattingField = new JTextField(); // 채팅 입력 필드
+    chattingField.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+    bottomPanel.add(chattingField, BorderLayout.CENTER);
+
+
+    chattingSend = new JButton("보내기");
+    bottomPanel.add(chattingSend, BorderLayout.EAST);
+
+
+    chattingPanel = new JPanel(new BorderLayout());
     chattingPanel.setPreferredSize(new Dimension(450, 200));
     chattingPanel.setBackground(new Color(0, 128, 128, 128));
 
+
+    chattingArea = new JTextArea(); // 채팅 메시지를 보여주는 영역
+    chattingArea.setEditable(false);
+    chattingArea.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+    chattingPanel.add(new JScrollPane(chattingArea), BorderLayout.CENTER); // 스크롤 가능하게 설정
+
+    chattingPanel.add(bottomPanel, BorderLayout.SOUTH);
+
+    chattingField.addKeyListener(new KeyAdapter() {
+      @Override
+      public void keyPressed(KeyEvent e) {
+        int press = e.getKeyCode();
+        if(press == KeyEvent.VK_ENTER) {
+          System.out.println("KeyPress Check");
+          msg = chattingField.getText();
+          System.out.println("msg check : " + msg);
+          if(!msg.isEmpty()){
+            Protocol p = new Protocol();
+            p.setCmd(4);
+            p.setMsg(p.getMsg());
+            chattingField.setText("");
+            try{
+              out.writeObject(p);
+            } catch (IOException ex) {
+              System.out.println("KeyListener Error: " + ex.getMessage());
+            }
+            System.out.println(p.toString());
+          }
+        }
+      }
+    });
+
+    chattingSend.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        System.out.println("chk");
+        msg = chattingField.getText();
+        System.out.println(msg);
+        if(!msg.isEmpty()) {
+//          Protocol p = new Protocol();
+//          p.setCmd(Protocol.CMD_MSG_SEND);
+//          p.setMsg(p.getMsg());
+          chattingField.setText("");
+          try {
+            out.writeObject(new Protocol(Protocol.CMD_MSG_SEND, msg, null));
+          } catch (IOException ex) {
+            System.out.println("ActionListener Error: " + ex.getMessage());
+          }
+          System.out.println(p);
+        }
+      }
+
+    });
 
     contentPanel.add(centerPanel, BorderLayout.CENTER);
     contentPanel.add(leftSidePanel, BorderLayout.WEST);
@@ -150,8 +221,7 @@ public class Client extends JFrame {
       try {
         while (!Thread.currentThread().isInterrupted()) {
           Object obj = in.readObject();
-          if (obj instanceof Protocol) {
-            Protocol protocol = (Protocol) obj;
+          if (obj instanceof Protocol protocol) {
             handleProtocol(protocol);
           }
         }
@@ -166,9 +236,15 @@ public class Client extends JFrame {
   private void handleProtocol(Protocol protocol) {
     SwingUtilities.invokeLater(() -> {
       switch (protocol.getCmd()) {
-        case Protocol.CMD_DISCONNECT:
-          closeConnection();
-          System.exit(0);
+        case Protocol.CMD_GET_DRAWERS_ALL_DOTS:
+          Protocol p = new Protocol();
+          p.setCmd(Protocol.CMD_DRAW);
+          p.setDots(new ArrayList<>(allDots));
+          try {
+            out.writeObject(p);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
           break;
         case Protocol.CMD_DRAW:
           ArrayList<Dot> receivedDots = protocol.getDots();
@@ -180,6 +256,14 @@ public class Client extends JFrame {
         case Protocol.CMD_CLEAR:
           allDots.clear();
           drawingPanel.repaint();
+          break;
+        case Protocol.CMD_MSG_SEND:
+          chattingArea.append(protocol.getMsg() + "\r\n");
+          System.out.println(protocol);
+          break;
+        case Protocol.CMD_DISCONNECT:
+          closeConnection();
+          System.exit(0);
           break;
       }
     });

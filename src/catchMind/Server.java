@@ -5,22 +5,26 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Optional;
 
 public class Server {
   private ServerSocket ss;
-  private final List<CopyClient> clients = new ArrayList<>();
+  private final ArrayList<CopyClient> clients = new ArrayList<>();
 
   public Server() {
     try {
       ss = new ServerSocket(5000);
       System.out.println("Server started on port 5000");
       while (!Thread.currentThread().isInterrupted()) {
-        Socket s = ss.accept();
-        System.out.println("New client connected: " + s.getInetAddress().getHostAddress());
-        CopyClient cc = new CopyClient(s, this);
-        cc.start();
-        clients.add(cc);
+        if(clients.size() < 8) {
+          Socket s = ss.accept();
+          System.out.println("New client connected: " + s.getInetAddress().getHostAddress());
+          CopyClient cc;
+          if(clients.isEmpty()) cc = new CopyClient(s, this, true);
+          else cc = new CopyClient(s, this, false);
+          cc.start();
+          clients.add(cc);
+        }
       }
     } catch (IOException e) {
       System.err.println("Server error: " + e.getMessage());
@@ -59,6 +63,17 @@ public class Server {
         System.err.println("Error closing server socket: " + e.getMessage());
       }
     }
+  }
+
+  public void getDrawersAllDot() {
+    Optional<CopyClient> result = clients.stream()
+            .filter(CopyClient::isDrawingAuthority)
+            .findFirst();
+    result.ifPresent(cc -> {
+      Protocol p = new Protocol();
+      p.setCmd(Protocol.CMD_GET_DRAWERS_ALL_DOTS);
+      cc.sendProtocol(p);
+    });
   }
 
   public static void main(String[] args) {
