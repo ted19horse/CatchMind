@@ -10,3 +10,6 @@
 - The server grants drawing permission to the first person who enters.
 - We have strengthened the exit logic when clicking the exit button.
 - Users can view the chat logs between each other.
+
+#### 2024-12-16 
+- Palette Color Change Finish, Button temporary. 
