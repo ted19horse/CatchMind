@@ -22,10 +22,13 @@ public class Client extends JFrame {
   private boolean isDrawingAuthority = false;
   private final ArrayList<Dot> allDots = new ArrayList<>();
   private final ArrayList<Dot> currentStroke = new ArrayList<>();
+
   String msg;
   JTextField chattingField;
   JButton chattingSend;
   JTextArea chattingArea;
+  Color selectColor = Color.BLACK;
+
 
   public Client() {
     initializeNetwork();
@@ -120,7 +123,7 @@ public class Client extends JFrame {
       @Override
       public void mouseDragged(MouseEvent e) {
         if (!isDrawingAuthority) return;
-        Dot d = new Dot(e.getX() - 1, e.getY() - 1, Color.BLACK);
+        Dot d = new Dot(e.getX() - 1, e.getY() - 1, selectColor);
         currentStroke.add(d);
         drawingPanel.repaint();
       }
@@ -134,6 +137,45 @@ public class Client extends JFrame {
     palettePanel = new JPanel();
     palettePanel.setLayout(new BoxLayout(palettePanel, BoxLayout.X_AXIS));
     palettePanel.setPreferredSize(new Dimension(900, 100));
+
+    /*검 빨 파 녹 노 색깔 패널을 추가하고 안에 각각 버튼 추가.
+    왜 디멘션이 안먹히는지 알아봐야함.*/
+    JButton black_Bt = new JButton("");
+    black_Bt.setPreferredSize(new Dimension(100, 100));
+    black_Bt.setBackground(Color.black);
+
+    JButton red_Bt = new JButton("");
+    red_Bt.setPreferredSize(new Dimension(100, 100));
+    red_Bt.setBackground(Color.RED);
+
+    JButton blue_Bt = new JButton("");
+    blue_Bt.setPreferredSize(new Dimension(100, 100));
+    blue_Bt.setBackground(Color.BLUE);
+
+    JButton green_Bt = new JButton("");
+    green_Bt.setPreferredSize(new Dimension(100, 100));
+    green_Bt.setBackground(Color.GREEN);
+
+    JButton yellow_Bt = new JButton("");
+    yellow_Bt.setPreferredSize(new Dimension(100, 100));
+    yellow_Bt.setBackground(Color.YELLOW);
+
+    palettePanel.add(black_Bt);
+    palettePanel.add(red_Bt);
+    palettePanel.add(blue_Bt);
+    palettePanel.add(green_Bt);
+    palettePanel.add(yellow_Bt);
+
+    black_Bt.addActionListener(e ->
+            selectColor = Color.BLACK);
+    red_Bt.addActionListener(e ->
+            selectColor = Color.RED);
+    blue_Bt.addActionListener(e ->
+            selectColor = Color.BLUE);
+    green_Bt.addActionListener(e ->
+            selectColor = Color.GREEN);
+    yellow_Bt.addActionListener(e ->
+            selectColor = Color.YELLOW);
 
     clearBtn = new JButton("Clear");
     clearBtn.setPreferredSize(new Dimension(100, 30));
