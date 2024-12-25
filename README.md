@@ -12,4 +12,7 @@
 - Users can view the chat logs between each other.
 
 #### 2024-12-16 
-- Palette Color Change Finish, Button temporary. 
+- Palette Color Change Finish, Button temporary.
+
+- #### 2024-12-25
+- Color Change button add on Jpaenl, Mybatis conntect test(failed)
