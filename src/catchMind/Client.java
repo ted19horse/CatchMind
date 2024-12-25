@@ -138,33 +138,42 @@ public class Client extends JFrame {
     palettePanel.setLayout(new BoxLayout(palettePanel, BoxLayout.X_AXIS));
     palettePanel.setPreferredSize(new Dimension(900, 100));
 
-    /*검 빨 파 녹 노 색깔 패널을 추가하고 안에 각각 버튼 추가.
-    왜 디멘션이 안먹히는지 알아봐야함.*/
-    JButton black_Bt = new JButton("");
-    black_Bt.setPreferredSize(new Dimension(100, 100));
+    // 패널 추가후 Dimension으로 버튼크기 지정 완료.
+    JPanel blackbt_P = new JPanel();
+    JButton black_Bt = new JButton();
+    black_Bt.setPreferredSize(new Dimension(50, 50));
     black_Bt.setBackground(Color.black);
+    blackbt_P.add(black_Bt);
 
-    JButton red_Bt = new JButton("");
-    red_Bt.setPreferredSize(new Dimension(100, 100));
+    JPanel redbt_P = new JPanel();
+    JButton red_Bt = new JButton();
+    red_Bt.setPreferredSize(new Dimension(50, 50));
     red_Bt.setBackground(Color.RED);
+    redbt_P.add(red_Bt);
 
-    JButton blue_Bt = new JButton("");
-    blue_Bt.setPreferredSize(new Dimension(100, 100));
+    JPanel bluebt_P = new JPanel();
+    JButton blue_Bt = new JButton();
+    blue_Bt.setPreferredSize(new Dimension(50, 50));
     blue_Bt.setBackground(Color.BLUE);
+    bluebt_P.add(blue_Bt);
 
-    JButton green_Bt = new JButton("");
-    green_Bt.setPreferredSize(new Dimension(100, 100));
+    JPanel greenbt_P = new JPanel();
+    JButton green_Bt = new JButton();
+    green_Bt.setPreferredSize(new Dimension(50, 50));
     green_Bt.setBackground(Color.GREEN);
+    greenbt_P.add(green_Bt);
 
-    JButton yellow_Bt = new JButton("");
-    yellow_Bt.setPreferredSize(new Dimension(100, 100));
+    JPanel yellowbt_P = new JPanel();
+    JButton yellow_Bt = new JButton();
+    yellow_Bt.setPreferredSize(new Dimension(50, 50));
     yellow_Bt.setBackground(Color.YELLOW);
+    yellowbt_P.add(yellow_Bt);
 
-    palettePanel.add(black_Bt);
-    palettePanel.add(red_Bt);
-    palettePanel.add(blue_Bt);
-    palettePanel.add(green_Bt);
-    palettePanel.add(yellow_Bt);
+    palettePanel.add(blackbt_P);
+    palettePanel.add(redbt_P);
+    palettePanel.add(bluebt_P);
+    palettePanel.add(greenbt_P);
+    palettePanel.add(yellowbt_P);
 
     black_Bt.addActionListener(e ->
             selectColor = Color.BLACK);
@@ -223,7 +232,8 @@ public class Client extends JFrame {
     chattingSend.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        msg = chattingField.getText();
+        msg = chattingField.getText().trim();
+        //채팅창에 표기되는 채팅내용을
         System.out.println(msg);
         if(!msg.isEmpty()) {
           try {
