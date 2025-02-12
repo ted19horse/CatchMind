@@ -90,20 +90,10 @@ public class Client extends JFrame {
         g2d.setStroke(new BasicStroke(2));
 
         for (ArrayList<Dot> stroke : allStrokes) {
-          for (int i = 1; i < stroke.size(); i++) {
-            Dot prev = stroke.get(i - 1);
-            Dot curr = stroke.get(i);
-            g2d.setColor(curr.color);
-            g2d.drawLine(prev.x, prev.y, curr.x, curr.y);
-          }
+          drawing(g2d, stroke);
         }
 
-        for (int i = 1; i < currentStroke.size(); i++) {
-          Dot prev = currentStroke.get(i - 1);
-          Dot curr = currentStroke.get(i);
-          g2d.setColor(curr.color);
-          g2d.drawLine(prev.x, prev.y, curr.x, curr.y);
-        }
+        drawing(g2d, currentStroke);
       }
     };
     drawingPanel.setPreferredSize(new Dimension(900, 600));
@@ -118,7 +108,7 @@ public class Client extends JFrame {
 
       @Override
       public void mouseReleased(MouseEvent e) {
-        if (!isDrawingAuthority) return;
+        if (!isDrawingAuthority || currentStroke.isEmpty()) return;
         sendDots(currentStroke);
         allStrokes.add(currentStroke);
         currentStroke.clear();
@@ -130,7 +120,7 @@ public class Client extends JFrame {
       @Override
       public void mouseDragged(MouseEvent e) {
         if (!isDrawingAuthority) return;
-        Dot d = new Dot(e.getX() - 1, e.getY() - 1, Color.BLACK);
+        Dot d = new Dot(e.getX() - (Dot.wh/2), e.getY() - (Dot.wh/2), Color.BLACK);
         currentStroke.add(d);
         drawingPanel.repaint();
       }
@@ -256,7 +246,6 @@ public class Client extends JFrame {
     });
   }
 
-
   private void addEventListener() {
     this.addWindowListener(new WindowAdapter() {
       @Override
@@ -267,6 +256,15 @@ public class Client extends JFrame {
         } catch (IOException ignored) {}
       }
     });
+  }
+
+  private void drawing(Graphics2D g2d, ArrayList<Dot> list) {
+    for (int i = 1; i < list.size(); i++) {
+      Dot prev = list.get(i - 1);
+      Dot curr = list.get(i);
+      g2d.setColor(curr.color);
+      g2d.drawLine(prev.x, prev.y, curr.x, curr.y);
+    }
   }
 
   private void handleProtocol(Protocol protocol) {

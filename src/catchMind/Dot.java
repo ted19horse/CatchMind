@@ -4,7 +4,8 @@ import java.awt.*;
 import java.io.Serializable;
 
 public class Dot implements Serializable {
-  int wh = 2, x, y;
+  static int wh = 2;
+  int x, y;
   Color color;
 
   public Dot(int x, int y, Color color) {
